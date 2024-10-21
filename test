@@ -1,0 +1,235 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#pragma warning(disable:4996)
+typedef enum { MAX_ETUDIANTS = 100, NB_LETTRE_MAX = 30, NB_MAX_ABS = 80, NB_CARACTERE = 3, NB_MIN_ETU = 0, NB_MAX_JUSTIFICATIFS=80, MAX_DESCRIPTION=51 } ;
+
+typedef struct {
+    int nm_etudiants;
+    char nom[NB_LETTRE_MAX];
+    int groupe;
+} Etudiant;
+
+
+
+void Commande1(Etudiant etudiants[], int* nm_etudiants, char* nom, int groupe) {
+    int trouver = 0;
+    for (int i = 0; i < *nm_etudiants; i++) {
+        if (strcmp(etudiants[i].nom, nom) == 0 && etudiants[i].groupe == groupe) {
+            trouver = 1;
+            break;
+        }
+    }
+
+    if (trouver) {
+        printf("Nom incorrect\n");
+    }
+    else {
+        etudiants[*nm_etudiants].nm_etudiants = *nm_etudiants + 1;
+        strcpy(etudiants[*nm_etudiants].nom, nom);
+        etudiants[*nm_etudiants].groupe = groupe;
+        (*nm_etudiants)++;
+        printf("Inscription enregistree (%d)\n", *nm_etudiants);
+    }
+}
+
+typedef struct {
+    int nm_etudiant;
+    int date;
+    char demi_journee[3];
+
+} absence;
+enum { NB_MIN_DATE = 0, NB_MAX_DATE = 40 };
+
+
+
+int trouver_absence(absence tabAbs[], int nb_absences, int nm_etudiant, int date, const char demi_journee[3]) {
+    for (int i = 0; i < nb_absences; i++) {
+        if (strcmp(tabAbs[i].demi_journee, demi_journee) == 0 && tabAbs[i].nm_etudiant == nm_etudiant && tabAbs[i].date == date) {
+            return 1; // Absence trouvée
+        }
+    }
+    return 0; // Absence non trouvée
+}
+
+void AbsenceEnregistrer(absence tabAbs[], int* nb_absences, int nm_etudiant, int date, const char demi_journee[3]) {
+    if (strcmp(demi_journee, "am") != 0 && strcmp(demi_journee, "pm") != 0) {
+        printf("Demi-journee incorrecte\n");
+    }
+    else if (nm_etudiant <= NB_MIN_ETU || nm_etudiant > MAX_ETUDIANTS) {
+        printf("Identifiant incorrect\n");
+    }
+    else if (date <= NB_MIN_DATE || date > NB_MAX_DATE) {
+        printf("Date incorrecte\n");
+    }
+    else if (trouver_absence(tabAbs, *nb_absences, nm_etudiant, date, demi_journee) == 1) {
+        printf("Absence deja connue\n");
+    }
+    else {
+        if (*nb_absences < NB_MAX_ABS) {
+            tabAbs[*nb_absences].nm_etudiant = nm_etudiant;
+            tabAbs[*nb_absences].date = date;
+            strcpy(tabAbs[*nb_absences].demi_journee, demi_journee);
+            (*nb_absences)++;
+            printf("Absence enregistree [%d]\n", *nb_absences);
+        }
+    }
+}
+
+//C3
+int comparerEtudiants(const void* etu1, const void* etu2) {
+    const Etudiant* etudiantA = (const Etudiant*)etu1;
+    const Etudiant* etudiantB = (const Etudiant*)etu2;
+    int comparaisonGroupe = etudiantA->groupe - etudiantB->groupe; 
+    if (comparaisonGroupe != 0) {
+        return comparaisonGroupe;
+    }
+    return strcmp(etudiantA->nom, etudiantB->nom);
+
+}
+
+int calculerAbsences(const absence tabAbs[], int nb_absences, int nm_etudiant, int date_limite) {
+    int totalAbsences = 0;
+    for (int i = 0; i < nb_absences; i++) {
+        if (tabAbs[i].nm_etudiant == nm_etudiant && tabAbs[i].date <= date_limite) {
+            totalAbsences++;
+        }
+    }
+    return totalAbsences;
+}
+
+void liste_etudiant(const Etudiant etudiants[], int nm_etudiants, const absence tabAbs[], int nb_absences, int date_jusquici) {
+    if (nm_etudiants == 0) {
+        printf("Aucun inscrit\n");
+        return;
+    }
+    if (date_jusquici <= NB_MIN_DATE) {
+        printf("Date incorrect\n");
+        return;
+    }
+
+    
+    Etudiant etudiantsTries[MAX_ETUDIANTS];
+    memcpy(etudiantsTries, etudiants, nm_etudiants * sizeof(Etudiant));
+    qsort(etudiantsTries, nm_etudiants, sizeof(Etudiant), comparerEtudiants);
+
+
+    for (int i = 0; i < nm_etudiants; i++) {
+        int totalAbsences = calculerAbsences(tabAbs, nb_absences, etudiantsTries[i].nm_etudiants, date_jusquici);
+        printf("(%d) %s %d %d\n", etudiantsTries[i].nm_etudiants, etudiantsTries[i].nom, etudiantsTries[i].groupe, totalAbsences);
+    }
+}
+//c4
+typedef struct {
+    int id_absence; // Link to the absence
+    int date_depot;
+    char description[MAX_DESCRIPTION];
+    int valide; // 0: not checked, 1: valid, -1: invalid
+} Justificatif;
+
+int trouver_absence2(const absence tabAbs[], int nb_absences, int id_absence) {
+    for (int i = 0; i < nb_absences; i++) {
+        if (tabAbs[i].nm_etudiant == id_absence) {
+            return i;  // Retourne l'indice de l'absence trouvée
+        }
+    }
+    return -1;  // Retourne -1 si l'absence n'est pas trouvée
+}
+
+
+
+int verifierJustificatifExistant(const Justificatif justificatifs[], int nb_justificatifs, int id_absence) {
+    for (int i = 0; i < nb_justificatifs; i++) {
+        if (justificatifs[i].id_absence == id_absence) {
+            return 1;  // Justificatif déjà existant
+        }
+    }
+    return 0;  // Aucun justificatif trouvé
+}
+int verifierDateDepot(int date_depot, int date_absence) {
+    if (date_depot <= date_absence) {
+        return 1;  // Date invalide
+    }
+    return 0;  // Date valide
+}
+void ajouterJustificatif(Justificatif justificatifs[], int* nb_justificatifs, int id_absence, int date_depot, const char* description, int est_valide) {
+    justificatifs[*nb_justificatifs].id_absence = id_absence;
+    justificatifs[*nb_justificatifs].date_depot = date_depot;
+    strcpy(justificatifs[*nb_justificatifs].description, description);
+    justificatifs[*nb_justificatifs].valide = est_valide;  // 0 pour non vérifié, 1 pour valide, -1 pour invalide
+    (*nb_justificatifs)++;
+}
+
+
+
+void JustificatifEnregistrer(Justificatif justificatifs[], int* nb_justificatifs, absence tabAbs[], int nb_absences, int id_absence, int date_depot, const char* description) {
+    // Vérifier si l'absence existe
+    int indice_absence = trouver_absence2(tabAbs, nb_absences, id_absence);
+    if (indice_absence == -1) {
+        printf("Identifiant incorrect\n");
+        return;
+    }
+
+    // Vérifier si un justificatif existe déjà pour cette absence
+    if (verifierJustificatifExistant(justificatifs, *nb_justificatifs, id_absence)==1) {
+        printf("Justificatif deja connu\n");
+        return;
+    }
+
+    // Vérifier si la date de dépôt est valide
+    if (verifierDateDepot(date_depot, tabAbs[indice_absence].date)) {
+        printf("Date incorrecte\n");
+        return;
+    }
+
+    // Ajouter le justificatif selon la période de dépôt (3 jours max)
+    if (date_depot <= tabAbs[indice_absence].date + 3) {
+        ajouterJustificatif(justificatifs, nb_justificatifs, id_absence, date_depot, description, 0);  // Non vérifié (valide = 0)
+    }
+    else {
+        ajouterJustificatif(justificatifs, nb_justificatifs, id_absence, date_depot, description, -1);  // Dépassé (valide = -1)
+    }
+
+    printf("Justificatif enregistre\n");
+}
+
+
+
+
+int main() {
+    Etudiant etudiants[MAX_ETUDIANTS];
+    absence tabAbs[NB_MAX_ABS];
+    int nm_etudiants = 0, nb_absences = 0;
+    char nom[NB_LETTRE_MAX];
+    int groupe, nm_etudiant, date, date_jusquici;
+    char demi_journee[NB_CARACTERE];
+    Justificatif justificatifs[NB_MAX_JUSTIFICATIFS];
+    int nb_justificatifs = 0;
+    char description[MAX_DESCRIPTION];
+    int id_absence, date_depot;
+
+    char cde[NB_LETTRE_MAX] = "";
+    do {
+        scanf("%s", cde);
+        if (strcmp(cde, "inscription") == 0) {
+            scanf("%s %d", nom, &groupe);
+            Commande1(etudiants, &nm_etudiants, nom, groupe);
+        }
+        else if (strcmp(cde, "absence") == 0) {
+            scanf("%d %d %s", &nm_etudiant, &date, demi_journee);
+            AbsenceEnregistrer(tabAbs, &nb_absences, nm_etudiant, date, demi_journee);
+        }
+        else if (strcmp(cde, "etudiants") == 0) {
+            scanf("%d", &date_jusquici);
+            liste_etudiant(etudiants, nm_etudiants, tabAbs, nb_absences, date_jusquici);
+        }
+        else if (strcmp(cde, "justificatif")== 0) {
+            scanf("%d %d", &id_absence, &date_depot);
+            fgets(description, MAX_DESCRIPTION, stdin); // Use fgets to read the description with spaces
+            description[strcspn(description, "\n")] = 0; // Remove trailing newline
+            JustificatifEnregistrer(justificatifs, &nb_justificatifs, tabAbs, nb_absences, id_absence, date_depot, description);
+
+        }
+
+    } while (strcmp(cde, " exit ") != 0); // C0
+}
