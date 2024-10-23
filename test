@@ -121,82 +121,73 @@ void liste_etudiant(const Etudiant etudiants[], int nm_etudiants, const absence 
 }
 //c4
 typedef struct {
-    int id_absence; // Link to the absence
+    int id_absence;
     int date_depot;
-    int jours_absence;
     char description[MAX_DESCRIPTION];
-    int valide; // 0: not checked, 1: valid, -1: invalid
-} Justificatif;
+    int valide;
+}Justificatif;
 
 int trouver_absence2(const absence tabAbs[],int id_absence) {
     for (int i = 0; i < NB_MAX_ABS; i++) {
         if (tabAbs[i].nm_etudiant == id_absence) {
-            return i;  // Retourne l'indice de l'absence trouvée
+            return i;
         }
     }
-    return -1;  // Retourne -1 si l'absence n'est pas trouvée
+    return -1;
 }
-
-
 
 int verifierJustificatifExistant(const Justificatif justificatifs[], int nb_justificatifs, int id_absence) {
     for (int i = 0; i < nb_justificatifs; i++) {
         if (justificatifs[i].id_absence == id_absence) {
-            return 1;  // Justificatif déjà existant
+            return 1;
         }
     }
-    return 0;  // Aucun justificatif trouvé
+    return 0;
 }
 
-int verifierDateDepot(const  absence tabAbs[], int date_depot) {
-    for (int i = 0; i < date_depot; i++) {
-        if (tabAbs[i].date == date_depot) {
-            return 1;  // Justificatif déjà existant
-        }
-    }
-    return 0;  // Aucun justificatif trouvé
-}
-void ajouterJustificatif(Justificatif justificatifs[], int* nb_justificatifs, int id_absence,int jours_absence, const char* description, int est_valide) {
-    justificatifs[*nb_justificatifs].id_absence = id_absence;
-    justificatifs[*nb_justificatifs].jours_absence = jours_absence;
-    strcpy(justificatifs[*nb_justificatifs].description, description);
-    justificatifs[*nb_justificatifs].valide = est_valide;  // 0 pour non vérifié, 1 pour valide, -1 pour invalide
-    (*nb_justificatifs)++;
-}
-
-
-
-void JustificatifEnregistrer(Justificatif justificatifs[], int* nb_justificatifs, absence tabAbs[], int id_absence, int jours_absence, const char* description) {
+void JustificatifEnregistrer(Justificatif justificatifs[], int* nb_justificatifs, absence tabAbs[], int id_absence, int date_depot, const char* description) {
     // Vérifier si l'absence existe
-    int indice_absence = trouver_absence2(tabAbs,id_absence);
-    if (indice_absence == -1) {
+    int indice_absence = trouver_absence2(tabAbs, id_absence);
+
+    // Vérifier si l'identifiant d'absence est correct
+    if (indice_absence == -1 || id_absence == 0) {
         printf("Identifiant incorrect\n");
         return;
     }
 
+
+    if (date_depot<tabAbs[indice_absence].date||date_depot<=NB_MIN_DATE) {
+        printf("Date incorrecte\n");
+        return;
+    }
+
     // Vérifier si un justificatif existe déjà pour cette absence
-    else if (verifierJustificatifExistant(justificatifs, *nb_justificatifs, id_absence) == 1) {
+    if (verifierJustificatifExistant(justificatifs, *nb_justificatifs, id_absence) == 1) {
         printf("Justificatif deja connu\n");
         return;
     }
 
-    // Vérifier si la date de dépôt est valide
-    if (jours_absence <= 0) {
-        printf("Date incorrect\n");
-        return;
-    }
-
-    // Ajouter le justificatif selon la période de dépôt (3 jours max)
-    else if (tabAbs[indice_absence].date<=tabAbs[indice_absence].date + 3) {
-        ajouterJustificatif(justificatifs, nb_justificatifs, id_absence,jours_absence, description, 0);  // Non vérifié (valide = 0)
+    // Si tout est correct, enregistrer le justificatif
+    if (indice_absence != -1 && verifierJustificatifExistant(justificatifs, *nb_justificatifs, id_absence) == 0) {
+        justificatifs[*nb_justificatifs].id_absence = id_absence;
+        justificatifs[*nb_justificatifs].date_depot = date_depot;
+        strcpy(justificatifs[*nb_justificatifs].description, description);
+        justificatifs[*nb_justificatifs].valide = 0;  // Initialement en attente de validation
+        (*nb_justificatifs)++;
         printf("Justificatif enregistre\n");
     }
-    else {
-        ajouterJustificatif(justificatifs, nb_justificatifs, id_absence,jours_absence, description, -1);  // Dépassé (valide = -1)
-        printf("Justificatif enregistre\n");
+}
+void liste_justificatifs(const Justificatif justificatifs[], int nb_justificatifs) {
+    int en_attente = 0;
+    for (int i = 0; i < nb_justificatifs; i++) {
+        if (justificatifs[i].valide == 0) {
+            printf("[%d] %s\n", justificatifs[i].id_absence, justificatifs[i].description);
+            en_attente = 1;
+        }
     }
-
-
+    if (!en_attente) {
+        printf("Aucune validation en attente\n");
+    }
 }
 
 
@@ -212,7 +203,7 @@ int main() {
     Justificatif justificatifs[NB_MAX_JUSTIFICATIFS];
     int nb_justificatifs = 0;
     char description[MAX_DESCRIPTION];
-    int id_absence, jours_absence;
+    int id_absence, date_depot;
 
     char cde[NB_LETTRE_MAX] = "";
     do {
@@ -230,10 +221,10 @@ int main() {
             liste_etudiant(etudiants, nm_etudiants, tabAbs, nb_absences, date_jusquici);
         }
         else if (strcmp(cde, "justificatif") == 0) {
-            scanf("%d %d %s", &id_absence, &jours_absence, description);
+            scanf("%d %d %s", &id_absence, &date_depot, description);
             fgets(description, MAX_DESCRIPTION, stdin); // Use fgets to read the description with spaces
             description[strcspn(description, "\n")] = 0; // Remove trailing newline
-            JustificatifEnregistrer(justificatifs, &nb_justificatifs, tabAbs, id_absence,jours_absence, description);
+            JustificatifEnregistrer(justificatifs, &nb_justificatifs, tabAbs, id_absence, date_depot, description);
 
         }
 
