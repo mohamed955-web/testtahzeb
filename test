@@ -126,16 +126,16 @@ void liste_etudiant(const Etudiant etudiants[], int nm_etudiants, const absence 
     }
 
 
-    Etudiant etudiantsTries[MAX_ETUDIANTS];
+    Etudiant etudiants_deja_trié[MAX_ETUDIANTS];
     // permet de copier l etudiant trie dans le tableau , memcpy c est comme strcpy sauf que c est pour les tableau ou les structure plus grande 
-    memcpy(etudiantsTries, etudiants, nm_etudiants * sizeof(Etudiant));
+    memcpy(etudiants_deja_trié, etudiants, nm_etudiants * sizeof(Etudiant));
     // Trier le tableau des étudiants par groupe puis par nom grace a la fonction qsort 
-    qsort(etudiantsTries, nm_etudiants, sizeof(Etudiant), comparerEtudiants);
+    qsort(etudiants_deja_trié, nm_etudiants, sizeof(Etudiant), comparerEtudiants);
 
     // Afficher la liste des étudiants
     for (int i = 0; i < nm_etudiants; i++) {
-        int totalAbsences = calculerAbsences(tabAbs, nb_absences, etudiantsTries[i].nm_etudiants, date_jusquici);
-        printf("(%d) %-15s %d %d\n", etudiantsTries[i].nm_etudiants, etudiantsTries[i].nom, etudiantsTries[i].groupe, totalAbsences);
+        int totalAbsences = calculerAbsences(tabAbs, nb_absences, etudiants_deja_trié[i].nm_etudiants, date_jusquici);
+        printf("(%d) %-15s %d %d\n", etudiants_deja_trié[i].nm_etudiants, etudiants_deja_trié[i].nom, etudiants_deja_trié[i].groupe, totalAbsences);
     }
 }
 //structure pour enregistrer  justificatif
@@ -156,6 +156,7 @@ int trouver_absence2(const absence tabAbs[],int id_absence) {
     return -1;
 }
 
+// si le justifictafif est trouver , on retourne 1 sinon on retourne 0
 int verifierJustificatifExistant(const Justificatif justificatifs[], int nb_justificatifs, int id_absence) {
     for (int i = 0; i < nb_justificatifs; i++) {
         if (justificatifs[i].id_absence == id_absence) {
