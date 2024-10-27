@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#pragma warning(disable:4996)
+#include <stdio.h> // pour printf(),scanf(),fgets(),strcspn() 
+#include <stdlib.h> // pour strcmp et strcpy
+#include <string.h> // pour memcpy
+#pragma warning(disable:4996) //pour pouvoir utiliser scanf
 typedef enum { MAX_ETUDIANTS = 100, NB_LETTRE_MAX = 30, NB_MAX_ABS = 80, NB_CARACTERE = 3, NB_MIN_ETU = 0, NB_MAX_JUSTIFICATIFS = 80, MAX_DESCRIPTION = 51 };
 
 typedef struct {
@@ -11,19 +11,21 @@ typedef struct {
 } Etudiant;
 
 
-
+// Cette fonction permet d'inscrire un etudiants si et seulement si l etudiants n'est pas déja inscrit 
 void Commande1(Etudiant etudiants[], int* nm_etudiants, char* nom, int groupe) {
     int trouver = 0;
+    // cette fonction cherche dans le tableau si l' etudiant n est pas deja deja present dans le tableau , si c est le cas trouver devient egal a 1 
     for (int i = 0; i < *nm_etudiants; i++) {
         if (strcmp(etudiants[i].nom, nom) == 0 && etudiants[i].groupe == groupe) {
             trouver = 1;
             break;
         }
     }
-
+    // cette fonction renvoi Nom incorrect si l'etudiants est deja inscrit c est a dire que 
     if (trouver) {
         printf("Nom incorrect\n");
     }
+    // cette fonction met toute les infos données dans le tableau etudiants
     else {
         etudiants[*nm_etudiants].nm_etudiants = *nm_etudiants + 1;
         strcpy(etudiants[*nm_etudiants].nom, nom);
@@ -42,7 +44,7 @@ typedef struct {
 enum { NB_MIN_DATE = 0, NB_MAX_DATE = 40 };
 
 
-
+// cette fonction  verifie que les info de l absence de l etudiants ne sont pas deja connu , si c est deja conu sa renvoi 1 sinon sa renvoi 0
 int trouver_absence(absence tabAbs[], int nb_absences, int nm_etudiant, int date, const char demi_journee[3]) {
     for (int i = 0; i < nb_absences; i++) {
         if (strcmp(tabAbs[i].demi_journee, demi_journee) == 0 && tabAbs[i].nm_etudiant == nm_etudiant && tabAbs[i].date == date) {
@@ -53,70 +55,85 @@ int trouver_absence(absence tabAbs[], int nb_absences, int nm_etudiant, int date
 }
 
 void AbsenceEnregistrer(absence tabAbs[], int* nb_absences, int nm_etudiant, int date, const char demi_journee[3]) {
+    // verifie que la demi journéee entré c est soit am ou pm , le reste renverra demi journnee incorrect
     if (strcmp(demi_journee, "am") != 0 && strcmp(demi_journee, "pm") != 0) {
         printf("Demi-journee incorrecte\n");
     }
+    // si le nuero de l etudiants est inferieur a 1 ou qu'il est superieur a 100  sa renverra identifiant incorrect 
     else if (nm_etudiant <= NB_MIN_ETU || nm_etudiant > MAX_ETUDIANTS) {
         printf("Identifiant incorrect\n");
     }
+    // Vérifier si la date est valide
     else if (date <= NB_MIN_DATE || date > NB_MAX_DATE) {
         printf("Date incorrecte\n");
     }
+    // Vérifier si l'absence est déjà enregistrée grace a la fonction trouver_absence declarer plus haut 
     else if (trouver_absence(tabAbs, *nb_absences, nm_etudiant, date, demi_journee) == 1) {
         printf("Absence deja connue\n");
     }
+    // Si toutes les vérifications sont passées, cette fonction enregistre l'absence 
     else {
         if (*nb_absences < NB_MAX_ABS) {
             tabAbs[*nb_absences].nm_etudiant = nm_etudiant;
             tabAbs[*nb_absences].date = date;
-            strcpy(tabAbs[*nb_absences].demi_journee, demi_journee);
+            strcpy(tabAbs[*nb_absences].demi_journee, demi_journee); // On utlise la fonction strcpy pour les char si c est un entier seulement tabAbs[i].ledomainedutrucquonveut=letrucquonveut est necessaire  
             (*nb_absences)++;
             printf("Absence enregistree [%d]\n", *nb_absences);
         }
     }
 }
 
-//C3
+//fonction de comparaison pour pouvoir utliser qsort 
 int comparerEtudiants(const void* etu1, const void* etu2) {
+    // Convertir les arguments en pointeurs vers des structures Etudiant
     const Etudiant* etudiantA = (const Etudiant*)etu1;
     const Etudiant* etudiantB = (const Etudiant*)etu2;
+    // Comparer les groupes des étudiants
     int comparaisonGroupe = etudiantA->groupe - etudiantB->groupe;
+    // Si les groupes sont différents(different de 0 lors d une soustraction), retourner la différence
     if (comparaisonGroupe != 0) {
         return comparaisonGroupe;
     }
     return strcmp(etudiantA->nom, etudiantB->nom);
 
 }
+// Fonction pour calculer le nombre d'absences d'un étudiant
 
 int calculerAbsences(const absence tabAbs[], int nb_absences, int nm_etudiant, int date_limite) {
     int totalAbsences = 0;
     for (int i = 0; i < nb_absences; i++) {
+        // Vérifier si l'absence correspond à l'étudiant et est antérieure à la date limite , la date limite qui est date_jusquici  dans la fonction liste _etudiant
         if (tabAbs[i].nm_etudiant == nm_etudiant && tabAbs[i].date <= date_limite) {
             totalAbsences++;
         }
     }
     return totalAbsences;
 }
+// Fonction pour afficher la liste des étudiants 
 
 void liste_etudiant(const Etudiant etudiants[], int nm_etudiants, const absence tabAbs[], int nb_absences, int date_jusquici) {
+    // si le nm_etudiants = 0 on renvoi aucun inscrit parce les nm des etudiants inscrit sont au minimum egal a 1
     if (nm_etudiants == 0) {
         printf("Aucun inscrit\n");
         return;
     }
+     // Vérifier si la date est valide c est a dire superieur ou a 1
     if (date_jusquici <= NB_MIN_DATE) {
-        printf("Date incorrect\n");
+        printf("Date incorrecte\n");
         return;
     }
 
 
     Etudiant etudiantsTries[MAX_ETUDIANTS];
+    // permet de copier l etudiant trie dans le tableau , memcpy c est comme strcpy sauf que c est pour les tableau ou les structure plus grande 
     memcpy(etudiantsTries, etudiants, nm_etudiants * sizeof(Etudiant));
+    // Trier le tableau des étudiants par groupe puis par nom grace a la fonction qsort 
     qsort(etudiantsTries, nm_etudiants, sizeof(Etudiant), comparerEtudiants);
 
-
+    // Afficher la liste des étudiants
     for (int i = 0; i < nm_etudiants; i++) {
         int totalAbsences = calculerAbsences(tabAbs, nb_absences, etudiantsTries[i].nm_etudiants, date_jusquici);
-        printf("(%d) %s %d %d\n", etudiantsTries[i].nm_etudiants, etudiantsTries[i].nom, etudiantsTries[i].groupe, totalAbsences);
+        printf("(%d) %-15s %d %d\n", etudiantsTries[i].nm_etudiants, etudiantsTries[i].nom, etudiantsTries[i].groupe, totalAbsences);
     }
 }
 //c4
@@ -228,5 +245,5 @@ int main() {
 
         }
 
-    } while (strcmp(cde, " exit ") != 0); // C0
+    } while (strcmp(cde, "exit") != 0); // C0
 }
